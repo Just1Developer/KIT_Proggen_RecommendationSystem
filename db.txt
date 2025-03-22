@@ -1,0 +1,6 @@
+CentOS5 ( id= 105) contained-in operatingSystem
+centOS6 ( id = 106) contained-in OperatingSystem
+operatingSystem contains centos7 ( id = 107 )
+operatingsystem contained-in Software
+CentOS7 (id=107) successor-of centos6(id=106)
+CentOS5 (id=105) predecessor-of centos6(id=106)
