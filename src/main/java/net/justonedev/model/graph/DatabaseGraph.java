@@ -1,4 +1,4 @@
-package net.justonedev.model.g;
+package net.justonedev.model.graph;
 
 import net.justonedev.command.CommandResult;
 import net.justonedev.model.FilterStrategy;
@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -17,7 +18,7 @@ import java.util.stream.Stream;
 public class DatabaseGraph {
     public static final int PROGRAM_ID_CATEGORY = -1;
 
-    private final HashMap<String, Node> nodeRefs;
+    private final Map<String, Node> nodeRefs;
 
     public DatabaseGraph() {
         nodeRefs = new HashMap<>();
@@ -38,7 +39,7 @@ public class DatabaseGraph {
         };
     }
 
-    private RecommendationResult getSiblings(Node node) {
+    private static RecommendationResult getSiblings(Node node) {
         List<String> siblings = node.getNodesWith(EdgeType.CONTAINED_IN)
                 .mapMulti((BiConsumer<? super Node, Consumer<Node>>) (n, consumer)
                         -> n.getAllDirectlyContainedProducts().forEach(consumer))
@@ -46,14 +47,14 @@ public class DatabaseGraph {
         return RecommendationResult.valid(siblings);
     }
 
-    private RecommendationResult getSuccessors(Node node) {
+    private static RecommendationResult getSuccessors(Node node) {
         // Not an accident with successor/predecessor. We follow this to get all the successors
         List<String> successors = node.getAllProductsWithRecursively(EdgeType.PREDECESSOR).stream()
                 .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
         return RecommendationResult.valid(successors);
     }
 
-    private RecommendationResult getPredecessors(Node node) {
+    private static RecommendationResult getPredecessors(Node node) {
         // Not an accident with successor/predecessor. We follow this to get all the predecessors
         List<String> predecessors = node.getAllProductsWithRecursively(EdgeType.SUCCESSOR).stream()
                 .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
@@ -149,7 +150,7 @@ public class DatabaseGraph {
 
         Edge edge = new Edge(edgeData.type(), fromNode, toNode);
 
-        Optional<String> invalidEdgeMessage = edge.isValid();
+        Optional<String> invalidEdgeMessage = edge.checkValidity();
         if (invalidEdgeMessage.isPresent()) {
             return EdgePair.invalid(invalidEdgeMessage.get());
         }
@@ -159,14 +160,14 @@ public class DatabaseGraph {
         return EdgePair.valid(fromNode, toNode, edge, inverseEdge);
     }
 
-    private boolean edgeExists(Edge edge) {
-        return edge.source().getOutgoingEdgeListRef().contains(edge);
+    private static boolean edgeExists(Edge edge) {
+        return edge.source().getOutgoingEdges().contains(edge);
     }
 
     private Stream<Edge> getEdges() {
         List<Edge> edges = new ArrayList<>();
         for (Node node : nodeRefs.values()) {
-            edges.addAll(node.getOutgoingEdgeListRef());
+            edges.addAll(node.getOutgoingEdges());
         }
         return edges.stream();
     }
@@ -178,13 +179,16 @@ public class DatabaseGraph {
                 .map(edge -> "%s -> %s [label=%s]"
                 .formatted(edge.source().getName(), edge.target().getName(), edge.edgeType().getDigraphLabelName()))
                 .toList());
-        output.addAll(nodeRefs.values().stream().map(node -> node.getType() == NodeType.CATEGORY ? "%s [shape=box]".formatted(node.getName()) : null)
+        output.addAll(nodeRefs.values().stream()
+                .map(node -> node.getType() == NodeType.CATEGORY ? "%s [shape=box]".formatted(node.getName()) : null)
                 .filter(Objects::nonNull).sorted().toList());
         return output;
     }
 
     public List<String> formatEdges() {
-        return getEdges().sorted(Comparator.comparing(Edge::formatToSortOrder).thenComparing(edge -> edge.edgeType().getOrder())).map(edge -> "%s-[%s]->%s"
+        return getEdges().sorted(Comparator
+                        .comparing(Edge::formatToSortOrder)
+                        .thenComparing(edge -> edge.edgeType().getOrder())).map(edge -> "%s-[%s]->%s"
                         .formatted(edge.source().getLabel(), edge.edgeType().getEdgeDisplayName(), edge.target().getLabel()))
                 .toList();
     }

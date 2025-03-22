@@ -4,10 +4,11 @@ import net.justonedev.model.RecommendationSystem;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class CommandHandler {
-    private final HashMap<String, Command> commands;
+    private final Map<String, Command> commands;
     private final RecommendationSystem recommendationSystem;
     private boolean running;
 

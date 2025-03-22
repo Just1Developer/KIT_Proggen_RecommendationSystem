@@ -1,4 +1,4 @@
-package net.justonedev.model.g;
+package net.justonedev.model.graph;
 
 record EdgePair(Node fromNode, Node toNode, Edge edge, Edge inverseEdge, boolean valid, String errorMessage) {
     static EdgePair valid(Node fromNode, Node toNode, Edge edge, Edge inverseEdge) {

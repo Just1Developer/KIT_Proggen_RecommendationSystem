@@ -1,16 +1,28 @@
 package net.justonedev.model;
 
-import net.justonedev.model.g.DatabaseGraph;
+import net.justonedev.model.graph.DatabaseGraph;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
-public record ParseGraphResult(Optional<DatabaseGraph> graph, List<String> validEdges, boolean valid, String errorMessage) {
+public record ParseGraphResult(DatabaseGraph graph, List<String> validEdges, boolean valid, String errorMessage) {
+    public ParseGraphResult(DatabaseGraph graph, List<String> validEdges, boolean valid, String errorMessage) {
+        this.graph = graph;
+        this.validEdges = new ArrayList<>(validEdges);
+        this.valid = valid;
+        this.errorMessage = errorMessage;
+    }
+
+    @Override
+    public List<String> validEdges() {
+        return new ArrayList<>(validEdges);
+    }
+
     public static ParseGraphResult success(DatabaseGraph graph, List<String> validEdges) {
-        return new ParseGraphResult(Optional.of(graph), validEdges, true, "");
+        return new ParseGraphResult(graph, validEdges, true, "");
     }
 
     public static ParseGraphResult failure(List<String> validEdges, String error) {
-        return new ParseGraphResult(Optional.empty(), validEdges, false, error);
+        return new ParseGraphResult(null, validEdges, false, error);
     }
 }

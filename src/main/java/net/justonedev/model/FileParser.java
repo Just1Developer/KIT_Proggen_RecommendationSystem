@@ -2,9 +2,9 @@ package net.justonedev.model;
 
 import net.justonedev.command.CommandResult;
 import net.justonedev.command.ResultType;
-import net.justonedev.model.g.EdgeData;
-import net.justonedev.model.g.EdgeType;
-import net.justonedev.model.g.DatabaseGraph;
+import net.justonedev.model.graph.EdgeData;
+import net.justonedev.model.graph.EdgeType;
+import net.justonedev.model.graph.DatabaseGraph;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,7 +15,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class FileParser {
-    private static final Pattern EDGE_PATTERN = Pattern.compile("([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?\\s+(contained-in|contains|(?:suc|prede)cessor-of|part-of|has-part)\\s+([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?");
+    /**
+     * Regex that combines an edge with capturing groups for node names, their product ids (optional) and every connection type.
+     */
+    private static final Pattern EDGE_PATTERN = Pattern.compile("([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?\\s+"
+            + "(contained-in|contains|(?:suc|prede)cessor-of|part-of|has-part)\\s+([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?");
 
     private FileParser() { }
 
@@ -30,11 +34,16 @@ public final class FileParser {
             Optional<EdgeData> data = parseEdge(line);
             if (data.isPresent()) {
                 CommandResult result = databaseGraph.addEdge(data.get());
-                if (result.resultType() == ResultType.FAILURE) isValid = false;
+                if (result.resultType() == ResultType.FAILURE) {
+                    isValid = false;
+                }
             }
-            if (data.isEmpty()) isValid = false;
+            if (data.isEmpty()) {
+                isValid = false;
+            }
         }
-        return isValid ? ParseGraphResult.success(databaseGraph, lineOptional.get()) : ParseGraphResult.failure(lineOptional.get(), "An error occurred while parsing the database. The database will not be loaded.");
+        return isValid ? ParseGraphResult.success(databaseGraph, lineOptional.get()) : ParseGraphResult.failure(lineOptional.get(),
+                "An error occurred while parsing the database. The database will not be loaded.");
     }
 
     public static Optional<EdgeData> parseEdge(String line) {
@@ -45,7 +54,8 @@ public final class FileParser {
         String fromNodeName = matcher.group(1).toLowerCase();
         EdgeType type = EdgeType.getEdgeType(matcher.group(3));
         String toNodeName = matcher.group(4).toLowerCase();
-        int fromNodeId, toNodeId;
+        int fromNodeId;
+        int toNodeId;
         try {
             String fromIdMatch = matcher.group(2);
             String toIdMatch = matcher.group(5);

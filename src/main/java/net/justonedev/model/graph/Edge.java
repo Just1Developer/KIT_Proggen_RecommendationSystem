@@ -1,4 +1,4 @@
-package net.justonedev.model.g;
+package net.justonedev.model.graph;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -8,7 +8,7 @@ record Edge(EdgeType edgeType, Node source, Node target) {
         return "%s %s".formatted(source.getName(), target.getName());
     }
 
-    public Optional<String> isValid() {
+    public Optional<String> checkValidity() {
         if ((source.getType() != NodeType.PRODUCT || target.getType() != NodeType.PRODUCT)
                 && (edgeType != EdgeType.CONTAINS && edgeType != EdgeType.CONTAINED_IN)) {
             return Optional.of("This relation is only available for product nodes.");
@@ -22,7 +22,9 @@ record Edge(EdgeType edgeType, Node source, Node target) {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Edge edge = (Edge) o;
         return Objects.equals(source, edge.source) && Objects.equals(target, edge.target) && edgeType == edge.edgeType;
     }

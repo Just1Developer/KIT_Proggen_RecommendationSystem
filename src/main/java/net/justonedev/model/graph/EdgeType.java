@@ -1,4 +1,4 @@
-package net.justonedev.model.g;
+package net.justonedev.model.graph;
 
 public enum EdgeType {
     HAS_PART("has-part", 4),

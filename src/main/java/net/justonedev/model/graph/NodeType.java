@@ -1,4 +1,4 @@
-package net.justonedev.model.g;
+package net.justonedev.model.graph;
 
 enum NodeType {
     CATEGORY,

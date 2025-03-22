@@ -15,11 +15,12 @@ public class LoadCommand implements Command {
         }
         String filePath = getFilepath(args);
         ParseGraphResult parseGraphResult = FileParser.parseGraph(filePath);
-        if (parseGraphResult.graph().isPresent()) {
-            system.loadGraph(parseGraphResult.graph().get());
+        if (parseGraphResult.graph() != null) {
+            system.loadGraph(parseGraphResult.graph());
             return CommandResult.success(formatLines(parseGraphResult.validEdges()));
         }
-        return CommandResult.failure("Failed to parse database from file (Path: %s)".formatted(filePath), formatLines(parseGraphResult.validEdges()));
+        return CommandResult.failure("Failed to parse database from file (Path: %s)".formatted(filePath),
+                formatLines(parseGraphResult.validEdges()));
     }
 
     private static String formatLines(List<String> lines) {

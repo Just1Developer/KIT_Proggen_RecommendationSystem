@@ -1,4 +1,4 @@
-package net.justonedev.model.g;
+package net.justonedev.model.graph;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 class Node {
@@ -19,7 +17,7 @@ class Node {
     private final List<Edge> outgoingEdges;
     private final List<Edge> incomingEdges;
 
-    public Node(int productId, String name, NodeType type) {
+    Node(int productId, String name, NodeType type) {
         this.productId = productId;
         this.name = name;
         this.type = type;
@@ -69,8 +67,8 @@ class Node {
         return outgoingEdges.isEmpty() && incomingEdges.isEmpty();
     }
 
-    List<Edge> getOutgoingEdgeListRef() {
-        return outgoingEdges;
+    List<Edge> getOutgoingEdges() {
+        return new ArrayList<>(outgoingEdges);
     }
 
     public String getName() {
@@ -91,7 +89,9 @@ class Node {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Node node = (Node) o;
         return productId == node.productId && Objects.equals(name, node.name);
     }

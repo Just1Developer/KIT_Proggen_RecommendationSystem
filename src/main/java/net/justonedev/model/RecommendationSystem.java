@@ -2,8 +2,8 @@ package net.justonedev.model;
 
 import net.justonedev.command.CommandHandler;
 import net.justonedev.command.CommandResult;
-import net.justonedev.model.g.EdgeData;
-import net.justonedev.model.g.DatabaseGraph;
+import net.justonedev.model.graph.EdgeData;
+import net.justonedev.model.graph.DatabaseGraph;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -69,10 +69,10 @@ public class RecommendationSystem {
         return databaseGraph.removeEdge(edgeData);
     }
 
-    private String formatFromStringList(List<String> list) {
+    private static String formatFromStringList(List<String> list) {
         return formatFromStringList(NO_DATA, list, NO_DATA);
     }
-    private String formatFromStringList(List<String> prefix, List<String> list, List<String> suffix) {
+    private static String formatFromStringList(List<String> prefix, List<String> list, List<String> suffix) {
         StringJoiner joiner = new StringJoiner(System.lineSeparator());
         for (String graphLine : prefix) {
             joiner.add(graphLine);

@@ -11,7 +11,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RecommendCommand implements Command {
+
+    /**
+     * Regex is INTERSECTION(some stuff) or UNION(some stuff) with allowance for random spaces.
+     */
     private static final Pattern SET_PATTERN = Pattern.compile("\\s*(INTERSECTION|UNION)\\s*\\(\\s*(.*)\\s*\\)");
+
+    /**
+     * Regex is first S1 / S2 / S3 for the type of recommendation strategy, and then the product number, with allowance for random spaces.
+     */
     private static final Pattern SINGLE_SET_PATTERN = Pattern.compile("\\s*S([123])\\s+(\\d+)\\s*");
 
     private static final int GROUP_INDEX_STRATEGY = 1;
@@ -43,10 +51,15 @@ public class RecommendCommand implements Command {
                 return ConstructSetResult.failure("The set definition (\"%s\") did not match the expected format".formatted(string));
             }
             // Group 1 is guaranteed to be 1, 2 or 3
-            FilterStrategy filterStrategy = FilterStrategy.fromId(Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_STRATEGY)));
-            int productId = Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_PRODUCT_ID));
-            RecommendationResult result = system.getRecommendations(productId, filterStrategy);
-            return result.valid() ? ConstructSetResult.success(NodeSet.single(result.results())) : ConstructSetResult.failure(result.error());
+            try {
+                FilterStrategy filterStrategy = FilterStrategy.fromId(Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_STRATEGY)));
+                int productId = Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_PRODUCT_ID));
+                RecommendationResult result = system.getRecommendations(productId, filterStrategy);
+                return result.valid() ? ConstructSetResult.success(NodeSet.single(result.results()))
+                        : ConstructSetResult.failure(result.error());
+            } catch (NumberFormatException e) {
+                ConstructSetResult.failure("Failed to parse numbers (impossible, because of regex validation)");
+            }
         }
 
         CombinationStrategy combinationStrategy = CombinationStrategy.valueOf(matcher.group(GROUP_INDEX_SET_OPERATION));
@@ -58,7 +71,9 @@ public class RecommendCommand implements Command {
         ConstructSetResult firstSet = constructSet(system, firstSetMatch);
         ConstructSetResult secondSet = constructSet(system, secondSetMatch);
 
-        if (firstSet.isInvalid() || secondSet.isInvalid()) return ConstructSetResult.failure(firstSet, secondSet);
+        if (firstSet.isInvalid() || secondSet.isInvalid()) {
+            return ConstructSetResult.failure(firstSet, secondSet);
+        }
 
         firstSet.nodeSet().combine(secondSet.nodeSet(), combinationStrategy);
         return firstSet;
@@ -68,48 +83,52 @@ public class RecommendCommand implements Command {
         int bracketLevel = 0;
         char[] chars = set.toCharArray();
         for (int i = 0; i < chars.length; i++) {
-            if (chars[i] == '(') bracketLevel++;
-            else if (chars[i] == ')') bracketLevel--;
-            else if (bracketLevel == 0 && chars[i] == ',') return i;
+            if (chars[i] == '(') {
+                bracketLevel++;
+            } else if (chars[i] == ')') {
+                bracketLevel--;
+            } else if (bracketLevel == 0 && chars[i] == ',') {
+                return i;
+            }
         }
         return -1;
     }
 
     private record NodeSet(List<String> nodes) {
-            private NodeSet(List<String> nodes) {
-                this.nodes = new ArrayList<>(nodes);
-            }
+        private NodeSet(List<String> nodes) {
+            this.nodes = new ArrayList<>(nodes);
+        }
 
-            private void join(NodeSet other) {
-                nodes.addAll(other.nodes);
-            }
+        private void join(NodeSet other) {
+            nodes.addAll(other.nodes);
+        }
 
-            private void intersect(NodeSet other) {
-                nodes.removeIf(node -> !other.nodes.contains(node));
-            }
+        private void intersect(NodeSet other) {
+            nodes.removeIf(node -> !other.nodes.contains(node));
+        }
 
-            public void combine(NodeSet other, CombinationStrategy strategy) {
-                switch (strategy) {
-                    case INTERSECTION:
-                        intersect(other);
-                        break;
-                    case UNION:
-                        join(other);
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            public static NodeSet single(List<String> nodes) {
-                return new NodeSet(nodes);
-            }
-
-            public String getValue() {
-                return String.join(" ", nodes.stream().distinct().sorted(Comparator.comparing(node ->
-                        node.replaceAll(":\\d+", ""))).toList());
+        private void combine(NodeSet other, CombinationStrategy strategy) {
+            switch (strategy) {
+                case INTERSECTION:
+                    intersect(other);
+                    break;
+                case UNION:
+                    join(other);
+                    break;
+                default:
+                    break;
             }
         }
+
+        private static NodeSet single(List<String> nodes) {
+            return new NodeSet(nodes);
+        }
+
+        private String getValue() {
+            return String.join(" ", nodes.stream().distinct().sorted(Comparator.comparing(node ->
+                    node.replaceAll(":\\d+", ""))).toList());
+        }
+    }
 
     private enum CombinationStrategy {
         SINGLE,
@@ -118,24 +137,24 @@ public class RecommendCommand implements Command {
     }
 
     private record ConstructSetResult(NodeSet nodeSet, List<String> errors) {
-        public boolean isInvalid() {
+        private boolean isInvalid() {
             return !errors.isEmpty();
         }
-        public String getErrors() {
+        private String getErrors() {
             return errors.size() == 1 ? errors.get(0) : "Multiple Errors: %s".formatted(String.join(", ", errors));
         }
-        public String getRecommendations() {
+        private String getRecommendations() {
             return nodeSet.getValue();
         }
 
-        public static ConstructSetResult success(NodeSet results) {
+        private static ConstructSetResult success(NodeSet results) {
             return new ConstructSetResult(results, new ArrayList<>());
         }
-        public static ConstructSetResult failure(String error) {
+        private static ConstructSetResult failure(String error) {
             return new ConstructSetResult(NodeSet.single(List.of()), new ArrayList<>(List.of(error)));
         }
 
-        public static ConstructSetResult failure(ConstructSetResult previousErrors, ConstructSetResult morePreviousErrors) {
+        private static ConstructSetResult failure(ConstructSetResult previousErrors, ConstructSetResult morePreviousErrors) {
             List<String> errors = new ArrayList<>(previousErrors.errors);
             errors.addAll(morePreviousErrors.errors);
             return new ConstructSetResult(NodeSet.single(List.of()), errors);
