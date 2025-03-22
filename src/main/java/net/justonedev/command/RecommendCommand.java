@@ -74,42 +74,40 @@ public class RecommendCommand implements Command {
         return -1;
     }
 
-    private static class NodeSet {
-        private final List<String> nodes;
+    private record NodeSet(List<String> nodes) {
+            private NodeSet(List<String> nodes) {
+                this.nodes = new ArrayList<>(nodes);
+            }
 
-        private NodeSet(List<String> nodes) {
-            this.nodes = new ArrayList<>(nodes);
-        }
+            private void join(NodeSet other) {
+                nodes.addAll(other.nodes);
+            }
 
-        public void join(NodeSet other) {
-            nodes.addAll(other.nodes);
-        }
+            private void intersect(NodeSet other) {
+                nodes.removeIf(node -> !other.nodes.contains(node));
+            }
 
-        public void intersect(NodeSet other) {
-            nodes.removeIf(node -> !other.nodes.contains(node));
-        }
+            public void combine(NodeSet other, CombinationStrategy strategy) {
+                switch (strategy) {
+                    case INTERSECTION:
+                        intersect(other);
+                        break;
+                    case UNION:
+                        join(other);
+                        break;
+                    default:
+                        break;
+                }
+            }
 
-        public void combine(NodeSet other, CombinationStrategy strategy) {
-            switch (strategy) {
-                case INTERSECTION:
-                    intersect(other);
-                break;
-                case UNION:
-                    join(other);
-                    break;
-                default:
-                    break;
+            public static NodeSet single(List<String> nodes) {
+                return new NodeSet(nodes);
+            }
+
+            public String getValue() {
+                return String.join(" ", nodes.stream().distinct().sorted().toList());
             }
         }
-
-        public static NodeSet single(List<String> nodes) {
-            return new NodeSet(nodes);
-        }
-
-        public String getValue() {
-            return String.join(" ", nodes.stream().distinct().sorted().toList());
-        }
-    }
 
     private enum CombinationStrategy {
         SINGLE,
@@ -134,11 +132,7 @@ public class RecommendCommand implements Command {
         public static ConstructSetResult failure(String error) {
             return new ConstructSetResult(NodeSet.single(List.of()), new ArrayList<>(List.of(error)));
         }
-        public static ConstructSetResult failure(ConstructSetResult previousErrors, String error) {
-            List<String> errors = new ArrayList<>(previousErrors.errors);
-            errors.add(error);
-            return new ConstructSetResult(NodeSet.single(List.of()), errors);
-        }
+
         public static ConstructSetResult failure(ConstructSetResult previousErrors, ConstructSetResult morePreviousErrors) {
             List<String> errors = new ArrayList<>(previousErrors.errors);
             errors.addAll(morePreviousErrors.errors);

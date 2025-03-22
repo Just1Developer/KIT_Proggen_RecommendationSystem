@@ -5,7 +5,6 @@ import net.justonedev.model.FileParser;
 import net.justonedev.model.RecommendationSystem;
 
 import java.util.Optional;
-import java.util.StringJoiner;
 
 public class AddCommand implements Command {
     @Override
@@ -19,7 +18,7 @@ public class AddCommand implements Command {
 
     static CommandResult performEdgeAction(String[] edgeParts, EdgeDataAction action) {
         String reconstructedEdge = String.join(" ", edgeParts);
-        Optional<EdgeData> edgeData = FileParser.parseEdge(reconstructedEdge.toString());
+        Optional<EdgeData> edgeData = FileParser.parseEdge(reconstructedEdge);
         if (edgeData.isEmpty()) {
             return CommandResult.failure("Failed to parse edge: edge is not correctly formatted.");
         }

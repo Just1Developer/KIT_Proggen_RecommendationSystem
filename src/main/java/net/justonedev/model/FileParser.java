@@ -69,7 +69,7 @@ public final class FileParser {
      * @param filepath The filepath. May be relative.
      * @return An array of the lines. Not null.
      */
-    public static Optional<List<String>> readFile(String filepath) {
+    private static Optional<List<String>> readFile(String filepath) {
         // Find the file
         File file = new File(filepath);
         if (!file.exists()) {

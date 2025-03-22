@@ -1,7 +1,6 @@
 package net.justonedev.model.g;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -56,16 +55,8 @@ class Node {
         incomingEdges.remove(edge);
     }
 
-    public Stream<Edge> getOutgoingEdges() {
-        return outgoingEdges.stream();
-    }
-
     List<Edge> getOutgoingEdgeListRef() {
         return outgoingEdges;
-    }
-
-    public Stream<Edge> getIncomingEdges() {
-        return incomingEdges.stream();
     }
 
     public String getName() {

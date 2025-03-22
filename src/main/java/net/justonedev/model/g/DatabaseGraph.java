@@ -15,8 +15,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class DatabaseGraph {
-    public static final int PROGRAM_ID_UNKNOWN = -1;
-    public static final int PROGRAM_ID_CATEGORY = -2;
+    public static final int PROGRAM_ID_CATEGORY = -1;
 
     private final HashMap<String, Node> nodeRefs;
 
