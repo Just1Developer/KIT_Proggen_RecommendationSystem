@@ -5,10 +5,12 @@ import net.justonedev.model.g.DatabaseGraph;
 import java.util.List;
 import java.util.Optional;
 
-public record ParseGraphResult(Optional<DatabaseGraph> graph, List<String> validEdges) {
-    private static final ParseGraphResult EMPTY_RESULT = new ParseGraphResult(Optional.empty(), List.of());
+public record ParseGraphResult(Optional<DatabaseGraph> graph, List<String> validEdges, boolean valid, String errorMessage) {
+    public static ParseGraphResult success(DatabaseGraph graph, List<String> validEdges) {
+        return new ParseGraphResult(Optional.of(graph), validEdges, true, "");
+    }
 
-    public static ParseGraphResult empty() {
-        return EMPTY_RESULT;
+    public static ParseGraphResult failure(List<String> validEdges, String error) {
+        return new ParseGraphResult(Optional.empty(), validEdges, false, error);
     }
 }

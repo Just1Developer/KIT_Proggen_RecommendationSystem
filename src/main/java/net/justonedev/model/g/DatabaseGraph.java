@@ -32,9 +32,9 @@ public class DatabaseGraph {
         }
         Node node = nodeOptional.get();
         return switch (filterStrategy) {
-            case FilterStrategy.SIBLING -> getSiblings(node);
-            case FilterStrategy.SUCCESSOR -> getSuccessors(node);
-            case FilterStrategy.PREDECESSOR -> getPredecessors(node);
+            case SIBLING -> getSiblings(node);
+            case SUCCESSOR -> getSuccessors(node);
+            case PREDECESSOR -> getPredecessors(node);
         };
     }
 
@@ -42,21 +42,21 @@ public class DatabaseGraph {
         List<String> siblings = node.getNodesWith(EdgeType.CONTAINED_IN)
                 .mapMulti((BiConsumer<? super Node, Consumer<Node>>) (n, consumer)
                         -> n.getAllDirectlyContainedProducts().forEach(consumer))
-                .filter(n -> !n.equals(node)).map(Node::getLabel).sorted(Comparator.naturalOrder()).toList();
+                .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
         return RecommendationResult.valid(siblings);
     }
 
     private RecommendationResult getSuccessors(Node node) {
         // Not an accident with successor/predecessor. We follow this to get all the successors
         List<String> successors = node.getAllProductsWithRecursively(EdgeType.PREDECESSOR).stream()
-                .filter(n -> !n.equals(node)).map(Node::getLabel).sorted(Comparator.naturalOrder()).toList();
+                .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
         return RecommendationResult.valid(successors);
     }
 
     private RecommendationResult getPredecessors(Node node) {
         // Not an accident with successor/predecessor. We follow this to get all the predecessors
         List<String> predecessors = node.getAllProductsWithRecursively(EdgeType.SUCCESSOR).stream()
-                .filter(n -> !n.equals(node)).map(Node::getLabel).sorted(Comparator.naturalOrder()).toList();
+                .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
         return RecommendationResult.valid(predecessors);
     }
 
@@ -74,10 +74,17 @@ public class DatabaseGraph {
     private Optional<Node> getOrCreateNode(String id, int programId) {
         Node node = nodeRefs.get(id);
         if (node == null) {
+            if (isIdTaken(programId)) {
+                return Optional.empty();
+            }
             node = new Node(programId, id, NodeType.inferType(programId));
             nodeRefs.put(id, node);
         }
         return node.getProductId() == programId ? Optional.of(node) : Optional.empty();
+    }
+
+    private boolean isIdTaken(int productId) {
+        return productId != PROGRAM_ID_CATEGORY && nodeRefs.values().stream().anyMatch(node -> node.getProductId() == productId);
     }
 
     public CommandResult addEdge(EdgeData edgeData) {
@@ -111,6 +118,14 @@ public class DatabaseGraph {
         edges.fromNode().removeIncomingEdge(edges.inverseEdge());
         edges.toNode().removeIncomingEdge(edges.edge());
         edges.toNode().removeOutgoingEdge(edges.inverseEdge());
+
+        if (edges.fromNode().hasNoConnections()) {
+            nodeRefs.remove(edges.fromNode().getName());
+        }
+        if (edges.toNode().hasNoConnections()) {
+            nodeRefs.remove(edges.toNode().getName());
+        }
+
         return CommandResult.success();
     }
 
@@ -119,14 +134,18 @@ public class DatabaseGraph {
         Optional<Node> toNodeOpt = getOrCreateNode(edgeData.toNodeName(), edgeData.toNodeId());
 
         if (fromNodeOpt.isEmpty()) {
-            return EdgePair.invalid("Source node %s has a different program Id.".formatted(edgeData.fromNodeName()));
+            return EdgePair.invalid("Source node %s has an invalid program Id.".formatted(edgeData.fromNodeName()));
         }
         if (toNodeOpt.isEmpty()) {
-            return EdgePair.invalid("Destination node %s has a different program Id.".formatted(edgeData.toNodeName()));
+            return EdgePair.invalid("Destination node %s has an invalid program Id.".formatted(edgeData.toNodeName()));
         }
 
         Node fromNode = fromNodeOpt.get();
         Node toNode = toNodeOpt.get();
+
+        if (fromNode.equals(toNode)) {
+            return EdgePair.invalid("Source and destination nodes can't be the same.");
+        }
 
         Edge edge = new Edge(edgeData.type(), fromNode, toNode);
 
@@ -153,25 +172,24 @@ public class DatabaseGraph {
     }
 
     public List<String> formatDigraph() {
-        List<String> output = new ArrayList<>(getEdges().map(edge -> "%s -> %s [label=%s]"
+        List<String> output = new ArrayList<>(getEdges()
+                .sorted(Comparator.comparing(Edge::formatToSortOrder)
+                        .thenComparing(edge -> edge.edgeType().getOrder()))
+                .map(edge -> "%s -> %s [label=%s]"
                 .formatted(edge.source().getName(), edge.target().getName(), edge.edgeType().getDigraphLabelName()))
-                .sorted().toList());
+                .toList());
         output.addAll(nodeRefs.values().stream().map(node -> node.getType() == NodeType.CATEGORY ? "%s [shape=box]".formatted(node.getName()) : null)
                 .filter(Objects::nonNull).sorted().toList());
         return output;
     }
 
     public List<String> formatEdges() {
-        return getEdges().sorted(Comparator.comparing(Edge::formatToSortOrder)).map(edge -> "%s-[%s]->%s"
+        return getEdges().sorted(Comparator.comparing(Edge::formatToSortOrder).thenComparing(edge -> edge.edgeType().getOrder())).map(edge -> "%s-[%s]->%s"
                         .formatted(edge.source().getLabel(), edge.edgeType().getEdgeDisplayName(), edge.target().getLabel()))
                 .toList();
     }
 
-    public List<String> formatProducts() {
-        return nodeRefs.values().stream().filter(node -> node.getType() == NodeType.PRODUCT).map(Node::getLabel).sorted().toList();
-    }
-
-    public List<String> formatCategories() {
-        return nodeRefs.values().stream().filter(node -> node.getType() == NodeType.CATEGORY).map(Node::getLabel).sorted().toList();
+    public List<String> formatNodes() {
+        return nodeRefs.values().stream().sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
     }
 }

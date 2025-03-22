@@ -19,7 +19,7 @@ public class LoadCommand implements Command {
             system.loadGraph(parseGraphResult.graph().get());
             return CommandResult.success(formatLines(parseGraphResult.validEdges()));
         }
-        return CommandResult.failure("Failed to parse database from file (Path: %s)".formatted(filePath));
+        return CommandResult.failure("Failed to parse database from file (Path: %s)".formatted(filePath), formatLines(parseGraphResult.validEdges()));
     }
 
     private static String formatLines(List<String> lines) {

@@ -48,10 +48,11 @@ public class RecommendationSystem {
         return CommandResult.success(formatFromStringList(databaseGraph.formatEdges()));
     }
 
-    public String getFormattedNodeList() {
-        String products = String.join(" ", databaseGraph.formatProducts());
-        String categories = String.join(" ", databaseGraph.formatCategories());
-        return String.join(System.lineSeparator(), products, categories);
+    public CommandResult getFormattedNodeList() {
+        if (databaseGraph == null) {
+            return CommandResult.failure(GRAPH_NOT_EXISTS);
+        }
+        return CommandResult.success(String.join(" ", databaseGraph.formatNodes()));
     }
 
     public CommandResult addEdgeFromData(EdgeData edgeData) {

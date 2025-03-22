@@ -5,6 +5,7 @@ import net.justonedev.model.RecommendationResult;
 import net.justonedev.model.RecommendationSystem;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -105,7 +106,8 @@ public class RecommendCommand implements Command {
             }
 
             public String getValue() {
-                return String.join(" ", nodes.stream().distinct().sorted().toList());
+                return String.join(" ", nodes.stream().distinct().sorted(Comparator.comparing(node ->
+                        node.replaceAll(":\\d+", ""))).toList());
             }
         }
 
@@ -120,7 +122,7 @@ public class RecommendCommand implements Command {
             return !errors.isEmpty();
         }
         public String getErrors() {
-            return errors.size() == 1 ? errors.getFirst() : "Multiple Errors: %s".formatted(String.join(", ", errors));
+            return errors.size() == 1 ? errors.get(0) : "Multiple Errors: %s".formatted(String.join(", ", errors));
         }
         public String getRecommendations() {
             return nodeSet.getValue();

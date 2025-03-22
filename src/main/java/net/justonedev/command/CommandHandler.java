@@ -34,13 +34,19 @@ public class CommandHandler {
                     System.out.printf("Unknown command: \"%s\"%n", cmdName);
                     continue;
                 }
+
                 CommandResult result = command.execute(recommendationSystem, args);
+
+
                 String message = switch (result.resultType()) {
                     case SUCCESS -> result.message();
-                    case FAILURE -> "Error: %s".formatted(result.message());
+                    case FAILURE -> "Error, %s".formatted(result.message());
                 };
-                if (!message.isBlank()) {
-                    System.out.println(message);
+                if (!result.printRawAnyway().isEmpty()) {
+                    System.out.println(result.printRawAnyway());
+                }
+                if (!message.isEmpty()) {
+                    System.out.println(message.trim());
                 }
             }
         }

@@ -1,8 +1,12 @@
 package net.justonedev.model.g;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -32,11 +36,17 @@ class Node {
     }
 
     public List<Node> getAllProductsWithRecursively(EdgeType edgeType) {
-        // Streams don't allow for back-checking. If this leads to an infinite loop, re-do without streams
-        return getNodesWith(edgeType).mapMulti((BiConsumer<? super Node, Consumer<Node>>) (node, consumer) -> {
-            consumer.accept(node);
-            node.getAllProductsWithRecursively(edgeType).forEach(consumer);
-        }).distinct().toList();
+        Set<Node> collectedNodes = new HashSet<>();
+        Queue<Node> remainingNodes = new LinkedList<>();
+        remainingNodes.add(this);
+        while (!remainingNodes.isEmpty()) {
+            Node current = remainingNodes.poll();
+            collectedNodes.add(current);
+            current.getNodesWith(edgeType)
+                    .filter(node -> !collectedNodes.contains(node))
+                    .forEach(remainingNodes::add);
+        }
+        return collectedNodes.stream().toList();
     }
 
     public void addOutgoingEdge(Edge edge) {
@@ -53,6 +63,10 @@ class Node {
 
     public void removeIncomingEdge(Edge edge) {
         incomingEdges.remove(edge);
+    }
+
+    public boolean hasNoConnections() {
+        return outgoingEdges.isEmpty() && incomingEdges.isEmpty();
     }
 
     List<Edge> getOutgoingEdgeListRef() {

@@ -5,6 +5,9 @@ import net.justonedev.model.RecommendationSystem;
 public class NodesCommand implements Command {
     @Override
     public CommandResult execute(RecommendationSystem system, String[] args) {
-        return CommandResult.success(system.getFormattedNodeList());
+        if (args.length != 0) {
+            return CommandResult.failure("Invalid number of arguments: %d (Expected 0)".formatted(args.length));
+        }
+        return system.getFormattedNodeList();
     }
 }

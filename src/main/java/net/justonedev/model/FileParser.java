@@ -1,16 +1,16 @@
 package net.justonedev.model;
 
+import net.justonedev.command.CommandResult;
+import net.justonedev.command.ResultType;
 import net.justonedev.model.g.EdgeData;
 import net.justonedev.model.g.EdgeType;
 import net.justonedev.model.g.DatabaseGraph;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,15 +23,18 @@ public final class FileParser {
         DatabaseGraph databaseGraph = new DatabaseGraph();
         Optional<List<String>> lineOptional = readFile(file);
         if (lineOptional.isEmpty()) {
-            return ParseGraphResult.empty();
+            return ParseGraphResult.failure(List.of(), "Failed to read file: %s".formatted(file));
         }
         boolean isValid = true;
         for (String line : lineOptional.get()) {
             Optional<EdgeData> data = parseEdge(line);
-            data.ifPresent(databaseGraph::addEdge);
+            if (data.isPresent()) {
+                CommandResult result = databaseGraph.addEdge(data.get());
+                if (result.resultType() == ResultType.FAILURE) isValid = false;
+            }
             if (data.isEmpty()) isValid = false;
         }
-        return isValid ? new ParseGraphResult(Optional.of(databaseGraph), lineOptional.get()) : ParseGraphResult.empty();
+        return isValid ? ParseGraphResult.success(databaseGraph, lineOptional.get()) : ParseGraphResult.failure(lineOptional.get(), "An error occurred while parsing the database. The database will not be loaded.");
     }
 
     public static Optional<EdgeData> parseEdge(String line) {
@@ -73,24 +76,12 @@ public final class FileParser {
         // Find the file
         File file = new File(filepath);
         if (!file.exists()) {
-            System.err.printf("Unable to find File %s%n", filepath);
             return Optional.empty();
         }
-
-        // Open a scanner
-        Scanner scanner;
         try {
-            scanner = new Scanner(new FileInputStream(file));
-        } catch (FileNotFoundException e) {
-            System.err.printf("Failed to create FileInputStream for File %s%n", filepath);
+            return Optional.of(Files.readAllLines(file.toPath()));
+        } catch (IOException e) {
             return Optional.empty();
         }
-
-        // Read file and save Strings in list
-        List<String> lines = new ArrayList<>();
-        for (String s; scanner.hasNext() && (s = scanner.nextLine()) != null;) {
-            lines.add(s);
-        }
-        return Optional.of(lines);
     }
 }

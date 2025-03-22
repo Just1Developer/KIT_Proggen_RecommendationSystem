@@ -1,17 +1,19 @@
 package net.justonedev.model.g;
 
 public enum EdgeType {
-    HAS_PART("has-part"),
-    PART_OF("part-of"),
-    PREDECESSOR("predecessor-of"),
-    SUCCESSOR("successor-of"),
-    CONTAINS("contains"),
-    CONTAINED_IN("contained-in");
+    HAS_PART("has-part", 4),
+    PART_OF("part-of", 3),
+    PREDECESSOR("predecessor-of", 6),
+    SUCCESSOR("successor-of", 5),
+    CONTAINS("contains", 1),
+    CONTAINED_IN("contained-in", 2);
 
     private final String edgeDisplayName;
+    private final int order;
 
-    EdgeType(String edgeDisplayName) {
+    EdgeType(String edgeDisplayName, int order) {
         this.edgeDisplayName = edgeDisplayName;
+        this.order = order;
     }
     
     public String getEdgeDisplayName() {
@@ -20,6 +22,10 @@ public enum EdgeType {
     
     public String getDigraphLabelName() {
         return reformatEdgeName(edgeDisplayName);
+    }
+
+    public int getOrder() {
+        return order;
     }
 
     public static EdgeType getEdgeType(String edgeTypeDisplayName) {
