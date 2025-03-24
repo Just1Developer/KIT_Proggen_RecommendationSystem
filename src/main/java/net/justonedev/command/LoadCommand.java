@@ -1,6 +1,6 @@
 package net.justonedev.command;
 
-import net.justonedev.model.FileParser;
+import net.justonedev.model.Parser;
 import net.justonedev.model.ParseGraphResult;
 import net.justonedev.model.RecommendationSystem;
 import net.justonedev.model.stream.DataStream;
@@ -8,6 +8,11 @@ import net.justonedev.model.stream.DataStream;
 import java.util.List;
 import java.util.StringJoiner;
 
+/**
+ * The load command attempts to load a database graph from a specified file. The command prints the file contents
+ * regardless of success/failure.
+ * @author uwwfh
+ */
 public class LoadCommand implements Command {
     @Override
     public CommandResult execute(RecommendationSystem system, String[] args) {
@@ -15,13 +20,13 @@ public class LoadCommand implements Command {
             return CommandResult.failure("Not enough arguments: Required \"load database <filepath>\"");
         }
         String filePath = getFilepath(args);
-        ParseGraphResult parseGraphResult = FileParser.parseGraph(filePath);
+        ParseGraphResult parseGraphResult = Parser.parseGraph(filePath);
         if (parseGraphResult.graph() != null) {
             system.loadGraph(parseGraphResult.graph());
-            return CommandResult.success(formatLines(parseGraphResult.validEdges()));
+            return CommandResult.success(formatLines(parseGraphResult.fileLines()));
         }
         return CommandResult.failure("Failed to parse database from file (Path: %s)".formatted(filePath),
-                formatLines(parseGraphResult.validEdges()));
+                formatLines(parseGraphResult.fileLines()));
     }
 
     private static String formatLines(List<String> lines) {

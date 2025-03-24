@@ -1,6 +1,6 @@
 package net.justonedev.command;
 
-import net.justonedev.model.FilterStrategy;
+import net.justonedev.model.RecommendationStrategy;
 import net.justonedev.model.RecommendationResult;
 import net.justonedev.model.RecommendationSystem;
 import net.justonedev.model.stream.DataStream;
@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * The recommend command gives recommendations for a given product id using specified recommendation strategies (three available).
+ * The command also allows for combination of these recommendation strategies using set intersection and set union.
+ * @author uwwfh
+ */
 public class RecommendCommand implements Command {
 
     /**
@@ -52,10 +57,11 @@ public class RecommendCommand implements Command {
             }
             // Group 1 is guaranteed to be 1, 2 or 3
             try {
-                FilterStrategy filterStrategy = FilterStrategy.fromId(Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_STRATEGY)));
+                RecommendationStrategy recommendationStrategy = RecommendationStrategy
+                        .fromId(Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_STRATEGY)));
                 int productId = Integer.parseInt(singleSetMatcher.group(GROUP_INDEX_PRODUCT_ID));
-                RecommendationResult result = system.getRecommendations(productId, filterStrategy);
-                return result.valid() ? ConstructSetResult.success(NodeSet.single(result.results()))
+                RecommendationResult result = system.getRecommendations(productId, recommendationStrategy);
+                return result.valid() ? ConstructSetResult.success(NodeSet.single(result.recommendations()))
                         : ConstructSetResult.failure(result.error());
             } catch (NumberFormatException e) {
                 ConstructSetResult.failure("Failed to parse numbers (impossible, because of regex validation)");
@@ -151,13 +157,13 @@ public class RecommendCommand implements Command {
             return new ConstructSetResult(results, new ArrayList<>());
         }
         private static ConstructSetResult failure(String error) {
-            return new ConstructSetResult(NodeSet.single(List.of()), new ArrayList<>(List.of(error)));
+            return new ConstructSetResult(NodeSet.single(RecommendationSystem.NO_DATA), new ArrayList<>(List.of(error)));
         }
 
         private static ConstructSetResult failure(ConstructSetResult previousErrors, ConstructSetResult morePreviousErrors) {
             List<String> errors = new ArrayList<>(previousErrors.errors);
             errors.addAll(morePreviousErrors.errors);
-            return new ConstructSetResult(NodeSet.single(List.of()), errors);
+            return new ConstructSetResult(NodeSet.single(RecommendationSystem.NO_DATA), errors);
         }
     }
 }

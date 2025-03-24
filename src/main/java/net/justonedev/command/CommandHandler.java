@@ -7,21 +7,36 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+/**
+ * The CommandHandler. Processes all IO Communication.
+ * @author uwwfh
+ */
 public class CommandHandler {
     private final Map<String, Command> commands;
     private final RecommendationSystem recommendationSystem;
     private boolean running;
 
+    /**
+     * Creates a new CommandHandler and instantiates a new RecommendationSystem internally.
+     * All Commands are automatically registered.
+     */
     public CommandHandler() {
         this.commands = new HashMap<>();
         this.recommendationSystem = new RecommendationSystem(this);
         registerCommands();
     }
 
-    public void setRunning(boolean running) {
-        this.running = running;
+    /**
+     * Terminates the program in a controlled manner.
+     */
+    public void terminate() {
+        this.running = false;
     }
 
+    /**
+     * Starts processing commands from the IO command line. Reads and executes commands until 'quit' is entered or
+     * the {@linkplain #terminate()} method is called.
+     */
     public void start() {
         running = true;
         try (Scanner scanner = new Scanner(System.in)) {

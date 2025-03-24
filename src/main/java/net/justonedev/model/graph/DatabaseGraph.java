@@ -1,7 +1,7 @@
 package net.justonedev.model.graph;
 
 import net.justonedev.command.CommandResult;
-import net.justonedev.model.FilterStrategy;
+import net.justonedev.model.RecommendationStrategy;
 import net.justonedev.model.RecommendationResult;
 import net.justonedev.model.stream.DataStream;
 
@@ -13,24 +13,44 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * The graph representing the database.
+ * @author uwwfh
+ */
 public class DatabaseGraph {
+    /**
+     * The fallback program id for categories, such that it will be marked as ignored.
+     */
     public static final int PROGRAM_ID_CATEGORY = -1;
 
     private final Map<String, Node> nodeRefs;
 
+    /**
+     * Creates a new and empty database graph.
+     */
     public DatabaseGraph() {
         nodeRefs = new HashMap<>();
     }
 
     // -------------------------- GRAPH PROCESSING --------------------------
 
-    public RecommendationResult getRecommendations(int productId, FilterStrategy filterStrategy) {
+    /**
+     * Gets the recommendations for a given product id using a given filter strategy.
+     * Returns an invalid recommendation result with an error message for displaying in IO if anything goes wrong,
+     * for example if no product with the given product id exists.<br/>
+     * Otherwise, gets the recommendations as a list of product labels.
+     *
+     * @param productId The product id of the source product.
+     * @param recommendationStrategy The recommendation strategy.
+     * @return A recommendation result of the recommendations.
+     */
+    public RecommendationResult getRecommendations(int productId, RecommendationStrategy recommendationStrategy) {
         Optional<Node> nodeOptional = getNodeById(productId);
         if (nodeOptional.isEmpty()) {
             return RecommendationResult.invalid("Could not find the product with id " + productId);
         }
         Node node = nodeOptional.get();
-        return switch (filterStrategy) {
+        return switch (recommendationStrategy) {
             case SIBLING -> getSiblings(node);
             case SUCCESSOR -> getSuccessors(node);
             case PREDECESSOR -> getPredecessors(node);
@@ -84,6 +104,16 @@ public class DatabaseGraph {
         return productId != PROGRAM_ID_CATEGORY && DataStream.of(nodeRefs.values()).anyMatch(node -> node.getProductId() == productId);
     }
 
+    /**
+     * Adds a new edge to the database graph, extrapolated from the given edge data.
+     * Returns a command result if anything goes wrong. Attempts to create missing nodes, but will return a
+     * failed result if for example the node exists with a different product id, or the product id is already
+     * taken by another product.<br/>
+     * Will contain a useful error message. A successful result has no message.
+     *
+     * @param edgeData The data of the edge to add.
+     * @return The result.
+     */
     public CommandResult addEdge(EdgeData edgeData) {
         EdgePair edges = getEdgePair(edgeData);
         if (!edges.valid()) {
@@ -101,6 +131,16 @@ public class DatabaseGraph {
         return CommandResult.success();
     }
 
+    /**
+     * Removes an edge from the database graph, extrapolated from the given edge data.
+     * Returns a command result if anything goes wrong. Attempts to find and delete the given edge, but will return a
+     * failed result if the edge does not exist.<br/>
+     * This also deletes nodes if there are no connection to or from the node post-deletion.<br/>
+     * Will contain a useful error message. A successful result has no message.
+     *
+     * @param edgeData The data of the edge to add.
+     * @return The result.
+     */
     public CommandResult removeEdge(EdgeData edgeData) {
         EdgePair edges = getEdgePair(edgeData);
         if (!edges.valid()) {
@@ -168,6 +208,10 @@ public class DatabaseGraph {
         return DataStream.of(edges);
     }
 
+    /**
+     * Formats this database graph to a digraph format and returns a list of the line-wise digraph, sorted.
+     * @return A list of all the lines for the properly formatted digraph.
+     */
     public List<String> formatDigraph() {
         List<String> output = new ArrayList<>(getEdges()
                 .sorted(Edge::formatToSortOrder, edge -> edge.edgeType().getOrder())
@@ -180,6 +224,10 @@ public class DatabaseGraph {
         return output;
     }
 
+    /**
+     * Formats all the edges, line-wise and sorted.
+     * @return All edges, formatted and sorted, as a list of lines.
+     */
     public List<String> formatEdges() {
         return getEdges().sorted(Edge::formatToSortOrder, edge -> edge.edgeType().getOrder())
                 .map(edge -> "%s-[%s]->%s"
@@ -187,6 +235,10 @@ public class DatabaseGraph {
                 .toList();
     }
 
+    /**
+     * Formats all the nodes, sorted.
+     * @return All nodes, formatted and sorted, as a list of nodes.
+     */
     public List<String> formatNodes() {
         return DataStream.of(nodeRefs.values()).sorted(Node::getName).map(Node::getLabel).toList();
     }

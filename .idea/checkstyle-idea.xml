@@ -10,6 +10,7 @@
       <list>
         <ConfigurationLocation id="bundled-sun-checks" type="BUNDLED" scope="All" description="Sun Checks">(bundled)</ConfigurationLocation>
         <ConfigurationLocation id="bundled-google-checks" type="BUNDLED" scope="All" description="Google Checks">(bundled)</ConfigurationLocation>
+        <ConfigurationLocation id="409d46e0-c72d-4d40-b733-8c97ddee2bac" type="LOCAL_FILE" scope="All" description="doc">$PROJECT_DIR$/../KIT_Proggen_Codewars/checkstyle xtreme.xml</ConfigurationLocation>
         <ConfigurationLocation id="1ab583ef-6a89-457a-822a-22b8899ff2be" type="LOCAL_FILE" scope="All" description="kit">$PROJECT_DIR$/checkstyle nodoc.xml</ConfigurationLocation>
       </list>
     </option>

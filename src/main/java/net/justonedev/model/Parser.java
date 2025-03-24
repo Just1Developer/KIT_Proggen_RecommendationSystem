@@ -14,20 +14,30 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class FileParser {
+/**
+ * The parser provides methods for parsing graph files and edge data from strings.
+ * @author uwwfh
+ */
+public final class Parser {
     /**
      * Regex that combines an edge with capturing groups for node names, their product ids (optional) and every connection type.
      */
     private static final Pattern EDGE_PATTERN = Pattern.compile("([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?\\s+"
             + "(contained-in|contains|(?:suc|prede)cessor-of|part-of|has-part)\\s+([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?");
 
-    private FileParser() { }
+    private Parser() { }
 
+    /**
+     * Parses a graph from a given file. Returns a result wrapper with validity status, Graph (maybe null), and,
+     * if invalid, an error message.
+     * @param file The filepath.
+     * @return The result of the graph parsing.
+     */
     public static ParseGraphResult parseGraph(String file) {
         DatabaseGraph databaseGraph = new DatabaseGraph();
         Optional<List<String>> lineOptional = readFile(file);
         if (lineOptional.isEmpty()) {
-            return ParseGraphResult.failure(List.of(), "Failed to read file: %s".formatted(file));
+            return ParseGraphResult.failure(RecommendationSystem.NO_DATA, "Failed to read file: %s".formatted(file));
         }
         boolean isValid = true;
         for (String line : lineOptional.get()) {
@@ -46,6 +56,12 @@ public final class FileParser {
                 "An error occurred while parsing the database. The database will not be loaded.");
     }
 
+    /**
+     * Parses an edge from a string and returns edge data. Returns an empty optional if the
+     * edge was invalid, with no error message.
+     * @param line The line to parse to an edge.
+     * @return The optional edge data.
+     */
     public static Optional<EdgeData> parseEdge(String line) {
         Matcher matcher = EDGE_PATTERN.matcher(line);
         if (!matcher.matches()) {
