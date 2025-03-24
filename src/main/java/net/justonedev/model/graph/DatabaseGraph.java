@@ -3,6 +3,7 @@ package net.justonedev.model.graph;
 import net.justonedev.command.CommandResult;
 import net.justonedev.model.FilterStrategy;
 import net.justonedev.model.RecommendationResult;
+import net.justonedev.model.stream.DataStream;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,9 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class DatabaseGraph {
     public static final int PROGRAM_ID_CATEGORY = -1;
@@ -40,24 +38,22 @@ public class DatabaseGraph {
     }
 
     private static RecommendationResult getSiblings(Node node) {
-        List<String> siblings = node.getNodesWith(EdgeType.CONTAINED_IN)
-                .mapMulti((BiConsumer<? super Node, Consumer<Node>>) (n, consumer)
-                        -> n.getAllDirectlyContainedProducts().forEach(consumer))
-                .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
+        List<String> siblings = DataStream.unwrap(node.getNodesWith(EdgeType.CONTAINED_IN).map(Node::getAllDirectlyContainedProducts))
+                .filter(n -> !n.equals(node)).sorted(Node::getName).map(Node::getLabel).toList();
         return RecommendationResult.valid(siblings);
     }
 
     private static RecommendationResult getSuccessors(Node node) {
         // Not an accident with successor/predecessor. We follow this to get all the successors
-        List<String> successors = node.getAllProductsWithRecursively(EdgeType.PREDECESSOR).stream()
-                .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
+        List<String> successors = DataStream.of(node.getAllProductsWithRecursively(EdgeType.PREDECESSOR))
+                .filter(n -> !n.equals(node)).sorted(Node::getName).map(Node::getLabel).toList();
         return RecommendationResult.valid(successors);
     }
 
     private static RecommendationResult getPredecessors(Node node) {
         // Not an accident with successor/predecessor. We follow this to get all the predecessors
-        List<String> predecessors = node.getAllProductsWithRecursively(EdgeType.SUCCESSOR).stream()
-                .filter(n -> !n.equals(node)).sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
+        List<String> predecessors = DataStream.of(node.getAllProductsWithRecursively(EdgeType.SUCCESSOR))
+                .filter(n -> !n.equals(node)).sorted(Node::getName).map(Node::getLabel).toList();
         return RecommendationResult.valid(predecessors);
     }
 
@@ -85,7 +81,7 @@ public class DatabaseGraph {
     }
 
     private boolean isIdTaken(int productId) {
-        return productId != PROGRAM_ID_CATEGORY && nodeRefs.values().stream().anyMatch(node -> node.getProductId() == productId);
+        return productId != PROGRAM_ID_CATEGORY && DataStream.of(nodeRefs.values()).anyMatch(node -> node.getProductId() == productId);
     }
 
     public CommandResult addEdge(EdgeData edgeData) {
@@ -164,36 +160,34 @@ public class DatabaseGraph {
         return edge.source().getOutgoingEdges().contains(edge);
     }
 
-    private Stream<Edge> getEdges() {
+    private DataStream<Edge> getEdges() {
         List<Edge> edges = new ArrayList<>();
         for (Node node : nodeRefs.values()) {
             edges.addAll(node.getOutgoingEdges());
         }
-        return edges.stream();
+        return DataStream.of(edges);
     }
 
     public List<String> formatDigraph() {
         List<String> output = new ArrayList<>(getEdges()
-                .sorted(Comparator.comparing(Edge::formatToSortOrder)
-                        .thenComparing(edge -> edge.edgeType().getOrder()))
+                .sorted(Edge::formatToSortOrder, edge -> edge.edgeType().getOrder())
                 .map(edge -> "%s -> %s [label=%s]"
                 .formatted(edge.source().getName(), edge.target().getName(), edge.edgeType().getDigraphLabelName()))
                 .toList());
-        output.addAll(nodeRefs.values().stream()
+        output.addAll(DataStream.of(nodeRefs.values())
                 .map(node -> node.getType() == NodeType.CATEGORY ? "%s [shape=box]".formatted(node.getName()) : null)
-                .filter(Objects::nonNull).sorted().toList());
+                .filter(Objects::nonNull).sorted(Comparator.naturalOrder()).toList());
         return output;
     }
 
     public List<String> formatEdges() {
-        return getEdges().sorted(Comparator
-                        .comparing(Edge::formatToSortOrder)
-                        .thenComparing(edge -> edge.edgeType().getOrder())).map(edge -> "%s-[%s]->%s"
+        return getEdges().sorted(Edge::formatToSortOrder, edge -> edge.edgeType().getOrder())
+                .map(edge -> "%s-[%s]->%s"
                         .formatted(edge.source().getLabel(), edge.edgeType().getEdgeDisplayName(), edge.target().getLabel()))
                 .toList();
     }
 
     public List<String> formatNodes() {
-        return nodeRefs.values().stream().sorted(Comparator.comparing(Node::getName)).map(Node::getLabel).toList();
+        return DataStream.of(nodeRefs.values()).sorted(Node::getName).map(Node::getLabel).toList();
     }
 }

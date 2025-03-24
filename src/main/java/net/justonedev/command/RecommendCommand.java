@@ -3,9 +3,9 @@ package net.justonedev.command;
 import net.justonedev.model.FilterStrategy;
 import net.justonedev.model.RecommendationResult;
 import net.justonedev.model.RecommendationSystem;
+import net.justonedev.model.stream.DataStream;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -125,8 +125,8 @@ public class RecommendCommand implements Command {
         }
 
         private String getValue() {
-            return String.join(" ", nodes.stream().distinct().sorted(Comparator.comparing(node ->
-                    node.replaceAll(":\\d+", ""))).toList());
+            return String.join(" ", DataStream.of(nodes).distinct().sorted(node ->
+                    node.replaceAll(":\\d+", "")).toList());
         }
     }
 

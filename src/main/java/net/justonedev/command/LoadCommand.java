@@ -3,6 +3,7 @@ package net.justonedev.command;
 import net.justonedev.model.FileParser;
 import net.justonedev.model.ParseGraphResult;
 import net.justonedev.model.RecommendationSystem;
+import net.justonedev.model.stream.DataStream;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -25,7 +26,7 @@ public class LoadCommand implements Command {
 
     private static String formatLines(List<String> lines) {
         StringJoiner joiner = new StringJoiner(System.lineSeparator());
-        lines.forEach(joiner::add);
+        DataStream.of(lines).forEach(joiner::add);
         return joiner.toString();
     }
 

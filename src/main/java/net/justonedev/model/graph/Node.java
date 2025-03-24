@@ -1,5 +1,7 @@
 package net.justonedev.model.graph;
 
+import net.justonedev.model.stream.DataStream;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -7,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Stream;
 
 class Node {
     private final int productId;
@@ -25,8 +26,8 @@ class Node {
         incomingEdges = new ArrayList<>();
     }
 
-    public Stream<Node> getNodesWith(EdgeType edgeType) {
-        return outgoingEdges.stream().filter(edge -> edge.edgeType().equals(edgeType)).map(Edge::target);
+    public DataStream<Node> getNodesWith(EdgeType edgeType) {
+        return DataStream.of(outgoingEdges).filter(edge -> edge.edgeType().equals(edgeType)).map(Edge::target);
     }
 
     public List<Node> getAllDirectlyContainedProducts() {
@@ -44,7 +45,7 @@ class Node {
                     .filter(node -> !collectedNodes.contains(node))
                     .forEach(remainingNodes::add);
         }
-        return collectedNodes.stream().toList();
+        return DataStream.of(collectedNodes).toList();
     }
 
     public void addOutgoingEdge(Edge edge) {
