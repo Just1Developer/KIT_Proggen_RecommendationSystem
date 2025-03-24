@@ -25,6 +25,15 @@ public final class Parser {
     private static final Pattern EDGE_PATTERN = Pattern.compile("([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?\\s+"
             + "(contained-in|contains|(?:suc|prede)cessor-of|part-of|has-part)\\s+([a-zA-Z\\d]+)(?:\\s*\\(\\s*id\\s*=\\s*(\\d+)\\s*\\))?");
 
+    private static final String ERROR_FILE_READING = "Failed to read file: %s";
+    private static final String ERROR_PARSER = "An error occurred while parsing the database. The database will not be loaded.";
+
+    private static final int EDGE_GROUP_INDEX_FROM_NAME = 1;
+    private static final int EDGE_GROUP_INDEX_FROM_ID = 2;
+    private static final int EDGE_GROUP_INDEX_EDGE_TYPE = 3;
+    private static final int EDGE_GROUP_INDEX_TO_NAME = 4;
+    private static final int EDGE_GROUP_INDEX_TO_ID = 5;
+
     private Parser() { }
 
     /**
@@ -37,7 +46,7 @@ public final class Parser {
         DatabaseGraph databaseGraph = new DatabaseGraph();
         Optional<List<String>> lineOptional = readFile(file);
         if (lineOptional.isEmpty()) {
-            return ParseGraphResult.failure(RecommendationSystem.NO_DATA, "Failed to read file: %s".formatted(file));
+            return ParseGraphResult.failure(RecommendationSystem.NO_DATA, ERROR_FILE_READING.formatted(file));
         }
         boolean isValid = true;
         for (String line : lineOptional.get()) {
@@ -53,7 +62,7 @@ public final class Parser {
             }
         }
         return isValid ? ParseGraphResult.success(databaseGraph, lineOptional.get()) : ParseGraphResult.failure(lineOptional.get(),
-                "An error occurred while parsing the database. The database will not be loaded.");
+                ERROR_PARSER);
     }
 
     /**
@@ -67,14 +76,14 @@ public final class Parser {
         if (!matcher.matches()) {
             return Optional.empty();
         }
-        String fromNodeName = matcher.group(1).toLowerCase();
-        EdgeType type = EdgeType.getEdgeType(matcher.group(3));
-        String toNodeName = matcher.group(4).toLowerCase();
+        String fromNodeName = matcher.group(EDGE_GROUP_INDEX_FROM_NAME).toLowerCase();
+        EdgeType type = EdgeType.getEdgeType(matcher.group(EDGE_GROUP_INDEX_EDGE_TYPE));
+        String toNodeName = matcher.group(EDGE_GROUP_INDEX_TO_NAME).toLowerCase();
         int fromNodeId;
         int toNodeId;
         try {
-            String fromIdMatch = matcher.group(2);
-            String toIdMatch = matcher.group(5);
+            String fromIdMatch = matcher.group(EDGE_GROUP_INDEX_FROM_ID);
+            String toIdMatch = matcher.group(EDGE_GROUP_INDEX_TO_ID);
             fromNodeId = fromIdMatch == null || fromIdMatch.isBlank() ? DatabaseGraph.PROGRAM_ID_CATEGORY : Integer.parseInt(fromIdMatch);
             toNodeId = toIdMatch == null || toIdMatch.isBlank() ? DatabaseGraph.PROGRAM_ID_CATEGORY : Integer.parseInt(toIdMatch);
         } catch (NumberFormatException e) {
@@ -99,7 +108,6 @@ public final class Parser {
      * @return An array of the lines. Not null.
      */
     private static Optional<List<String>> readFile(String filepath) {
-        // Find the file
         File file = new File(filepath);
         if (!file.exists()) {
             return Optional.empty();

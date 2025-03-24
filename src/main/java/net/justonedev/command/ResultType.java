@@ -1,7 +1,7 @@
 package net.justonedev.command;
 
 /**
- * The result type of a command.
+ * The result type of any command.
  * @author uwwfh
  */
 public enum ResultType {

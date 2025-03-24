@@ -8,15 +8,23 @@ public enum RecommendationStrategy {
     /**
      * The sibling strategy, dubbed S1. Recommends all products which are contained in a same category as the target.
      */
-    SIBLING,
+    SIBLING(1),
     /**
      * The successor strategy, dubbed S2. Recommends all products which are direct and indirect successors of the target product.
      */
-    SUCCESSOR,
+    SUCCESSOR(2),
     /**
      * The predecessor strategy, dubbed S3. Recommends all products which are direct and indirect predecessors of the target product.
      */
-    PREDECESSOR;
+    PREDECESSOR(3);
+
+    private static final String UNKNOWN_FILTER_STRATEGY = "Unknown FilterStrategy Id: %d";
+
+    private final int strategyIndex;
+
+    RecommendationStrategy(int strategyIndex) {
+        this.strategyIndex = strategyIndex;
+    }
 
     /**
      * Parses the strategy from its respective id (used in S1, S2, S3). If the id is not valid, throws an IllegalArgumentException.
@@ -25,11 +33,11 @@ public enum RecommendationStrategy {
      * @return The FilterStrategy with that id.
      */
     public static RecommendationStrategy fromId(int id) {
-        return switch (id) {
-            case 1 -> SIBLING;
-            case 2 -> SUCCESSOR;
-            case 3 -> PREDECESSOR;
-            default -> throw new IllegalArgumentException("Unknown FilterStrategy: " + id);
-        };
+        for (RecommendationStrategy strategy : values()) {
+            if (strategy.strategyIndex == id) {
+                return strategy;
+            }
+        }
+        throw new IllegalArgumentException(UNKNOWN_FILTER_STRATEGY.formatted(id));
     }
 }

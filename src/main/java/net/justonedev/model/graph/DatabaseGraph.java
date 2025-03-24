@@ -23,6 +23,17 @@ public class DatabaseGraph {
      */
     public static final int PROGRAM_ID_CATEGORY = -1;
 
+    private static final String ERROR_PRODUCT_NOT_FOUND = "Could not find the product with id %d";
+    private static final String ERROR_EDGE_ALREADY_EXISTS = "The given relation is already present in the database";
+    private static final String ERROR_EDGE_DOESNT_EXIST = "The given relation is not present in the database";
+    private static final String ERROR_SOURCE_HAS_INVALID_ID = "Source node %s has an invalid program Id.";
+    private static final String ERROR_TARGET_HAS_INVALID_ID = "Destination node %s has an invalid program Id.";
+    private static final String ERROR_SELF_CONNECTION = "Source and destination nodes can't be the same.";
+
+    private static final String FORMAT_EDGE_DIGRAPH = "%s -> %s [label=%s]";
+    private static final String FORMAT_CATEGORY_DIGRAPH = "%s [shape=box]";
+    private static final String FORMAT_EDGE_LIST = "%s-[%s]->%s";
+
     private final Map<String, Node> nodeRefs;
 
     /**
@@ -47,7 +58,7 @@ public class DatabaseGraph {
     public RecommendationResult getRecommendations(int productId, RecommendationStrategy recommendationStrategy) {
         Optional<Node> nodeOptional = getNodeById(productId);
         if (nodeOptional.isEmpty()) {
-            return RecommendationResult.invalid("Could not find the product with id " + productId);
+            return RecommendationResult.invalid(ERROR_PRODUCT_NOT_FOUND.formatted(productId));
         }
         Node node = nodeOptional.get();
         return switch (recommendationStrategy) {
@@ -121,7 +132,7 @@ public class DatabaseGraph {
         }
 
         if (edgeExists(edges.edge())) {
-            return CommandResult.failure("The given relation is already present in the database");
+            return CommandResult.failure(ERROR_EDGE_ALREADY_EXISTS);
         }
 
         edges.fromNode().addOutgoingEdge(edges.edge());
@@ -148,7 +159,7 @@ public class DatabaseGraph {
         }
 
         if (!edgeExists(edges.edge())) {
-            return CommandResult.failure("The given relation is not present in the database");
+            return CommandResult.failure(ERROR_EDGE_DOESNT_EXIST);
         }
 
         edges.fromNode().removeOutgoingEdge(edges.edge());
@@ -171,17 +182,17 @@ public class DatabaseGraph {
         Optional<Node> toNodeOpt = getOrCreateNode(edgeData.toNodeName(), edgeData.toNodeId());
 
         if (fromNodeOpt.isEmpty()) {
-            return EdgePair.invalid("Source node %s has an invalid program Id.".formatted(edgeData.fromNodeName()));
+            return EdgePair.invalid(ERROR_SOURCE_HAS_INVALID_ID.formatted(edgeData.fromNodeName()));
         }
         if (toNodeOpt.isEmpty()) {
-            return EdgePair.invalid("Destination node %s has an invalid program Id.".formatted(edgeData.toNodeName()));
+            return EdgePair.invalid(ERROR_TARGET_HAS_INVALID_ID.formatted(edgeData.toNodeName()));
         }
 
         Node fromNode = fromNodeOpt.get();
         Node toNode = toNodeOpt.get();
 
         if (fromNode.equals(toNode)) {
-            return EdgePair.invalid("Source and destination nodes can't be the same.");
+            return EdgePair.invalid(ERROR_SELF_CONNECTION);
         }
 
         Edge edge = new Edge(edgeData.type(), fromNode, toNode);
@@ -215,11 +226,11 @@ public class DatabaseGraph {
     public List<String> formatDigraph() {
         List<String> output = new ArrayList<>(getEdges()
                 .sorted(Edge::formatToSortOrder, edge -> edge.edgeType().getOrder())
-                .map(edge -> "%s -> %s [label=%s]"
+                .map(edge -> FORMAT_EDGE_DIGRAPH
                 .formatted(edge.source().getName(), edge.target().getName(), edge.edgeType().getDigraphLabelName()))
                 .toList());
         output.addAll(DataStream.of(nodeRefs.values())
-                .map(node -> node.getType() == NodeType.CATEGORY ? "%s [shape=box]".formatted(node.getName()) : null)
+                .map(node -> node.getType() == NodeType.CATEGORY ? FORMAT_CATEGORY_DIGRAPH.formatted(node.getName()) : null)
                 .filter(Objects::nonNull).sorted(Comparator.naturalOrder()).toList());
         return output;
     }
@@ -230,7 +241,7 @@ public class DatabaseGraph {
      */
     public List<String> formatEdges() {
         return getEdges().sorted(Edge::formatToSortOrder, edge -> edge.edgeType().getOrder())
-                .map(edge -> "%s-[%s]->%s"
+                .map(edge -> FORMAT_EDGE_LIST
                         .formatted(edge.source().getLabel(), edge.edgeType().getEdgeDisplayName(), edge.target().getLabel()))
                 .toList();
     }

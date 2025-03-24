@@ -30,6 +30,9 @@ public enum EdgeType {
      */
     CONTAINED_IN("contained-in", 2);
 
+    private static final String ERROR_UNKNOWN_EDGE_TYPE = "Unknown edge type: %s";
+    private static final String STYLE_WORD_DELIMITER = "-";
+
     private final String edgeDisplayName;
     private final int order;
 
@@ -70,15 +73,12 @@ public enum EdgeType {
      */
     public static EdgeType getEdgeType(String edgeTypeDisplayName) {
         String name = reformatEdgeName(edgeTypeDisplayName);
-        return switch (name) {
-            case "haspart" -> EdgeType.HAS_PART;
-            case "partof" -> EdgeType.PART_OF;
-            case "predecessorof" -> EdgeType.PREDECESSOR;
-            case "successorof" -> EdgeType.SUCCESSOR;
-            case "contains" -> EdgeType.CONTAINS;
-            case "containedin" -> EdgeType.CONTAINED_IN;
-            default -> throw new IllegalArgumentException("Unknown edge type: " + edgeTypeDisplayName);
-        };
+        for (EdgeType edgeType : EdgeType.values()) {
+            if (edgeType.getDigraphLabelName().equals(name)) {
+                return edgeType;
+            }
+        }
+        throw new IllegalArgumentException(ERROR_UNKNOWN_EDGE_TYPE.formatted(edgeTypeDisplayName));
     }
 
     /**
@@ -98,6 +98,6 @@ public enum EdgeType {
     }
 
     private static String reformatEdgeName(String edgeDisplayName) {
-        return edgeDisplayName.replace("-", "");
+        return edgeDisplayName.replace(STYLE_WORD_DELIMITER, "");
     }
 }

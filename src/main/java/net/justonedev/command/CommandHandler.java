@@ -12,6 +12,34 @@ import java.util.Scanner;
  * @author uwwfh
  */
 public class CommandHandler {
+    /**
+     * The delimiter for command line arguments.
+     */
+    public static final String ARGUMENT_DELIMITER = " ";
+    /**
+     * The error message for when no arguments were expected, but some were provided.
+     */
+    public static final String ERROR_INVALID_ARGUMENTS_ZERO = "Invalid number of arguments: %d (Expected 0)";
+    /**
+     * The amount of arguments expected on an argument-less command.
+     */
+    public static final int NO_ARGUMENTS_LENGTH = 0;
+
+    private static final String ERROR_PREFIX = "Error, ";
+    private static final String ERROR_UNKNOWN_COMMAND = ERROR_PREFIX + "Unknown command: \"%s\"%n";
+
+    private static final String COMMAND_NAME_ADD = "add";
+    private static final String COMMAND_NAME_EDGES = "edges";
+    private static final String COMMAND_NAME_EXPORT = "export";
+    private static final String COMMAND_NAME_LOAD = "load";
+    private static final String COMMAND_NAME_NODES = "nodes";
+    private static final String COMMAND_NAME_QUIT = "quit";
+    private static final String COMMAND_NAME_RECOMMEND = "recommend";
+    private static final String COMMAND_NAME_REMOVE = "remove";
+
+    private static final int COMMAND_NAME_INDEX = 0;
+    private static final int COMMAND_ARGUMENTS_BEGIN_INDEX = 1;
+
     private final Map<String, Command> commands;
     private final RecommendationSystem recommendationSystem;
     private boolean running;
@@ -42,12 +70,12 @@ public class CommandHandler {
         try (Scanner scanner = new Scanner(System.in)) {
             String line;
             while (running && (line = scanner.nextLine()) != null) {
-                String[] splitCommand = line.split(" ");
-                String cmdName = splitCommand[0];
-                String[] args = Arrays.copyOfRange(splitCommand, 1, splitCommand.length);
+                String[] splitCommand = line.split(ARGUMENT_DELIMITER);
+                String cmdName = splitCommand[COMMAND_NAME_INDEX];
+                String[] args = Arrays.copyOfRange(splitCommand, COMMAND_ARGUMENTS_BEGIN_INDEX, splitCommand.length);
                 Command command = commands.get(cmdName);
                 if (command == null) {
-                    System.out.printf("Unknown command: \"%s\"%n", cmdName);
+                    System.out.printf(ERROR_UNKNOWN_COMMAND, cmdName);
                     continue;
                 }
 
@@ -56,7 +84,7 @@ public class CommandHandler {
 
                 String message = switch (result.resultType()) {
                     case SUCCESS -> result.message();
-                    case FAILURE -> "Error, %s".formatted(result.message());
+                    case FAILURE -> ERROR_PREFIX + result.message();
                 };
                 if (!result.printRawAnyway().isEmpty()) {
                     System.out.println(result.printRawAnyway());
@@ -69,13 +97,13 @@ public class CommandHandler {
     }
 
     private void registerCommands() {
-        commands.put("quit", new QuitCommand());
-        commands.put("export", new ExportCommand());
-        commands.put("edges", new EdgesCommand());
-        commands.put("nodes", new NodesCommand());
-        commands.put("add", new AddCommand());
-        commands.put("remove", new RemoveCommand());
-        commands.put("load", new LoadCommand());
-        commands.put("recommend", new RecommendCommand());
+        commands.put(COMMAND_NAME_ADD, new AddCommand());
+        commands.put(COMMAND_NAME_EDGES, new EdgesCommand());
+        commands.put(COMMAND_NAME_EXPORT, new ExportCommand());
+        commands.put(COMMAND_NAME_LOAD, new LoadCommand());
+        commands.put(COMMAND_NAME_NODES, new NodesCommand());
+        commands.put(COMMAND_NAME_QUIT, new QuitCommand());
+        commands.put(COMMAND_NAME_RECOMMEND, new RecommendCommand());
+        commands.put(COMMAND_NAME_REMOVE, new RemoveCommand());
     }
 }

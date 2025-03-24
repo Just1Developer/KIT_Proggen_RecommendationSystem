@@ -13,11 +13,23 @@ import java.util.StringJoiner;
  * @author uwwfh
  */
 public class RecommendationSystem {
+
+    /**
+     * The delimiter character when listing multiple elements in a single output line.
+     */
+    public static final String INLINE_LIST_DELIMITER = " ";
+
     /**
      * An immutable empty list to avoid creating new objects each time we need an empty list here.
      */
     public static final List<String> NO_DATA = List.of();
-    private static final String GRAPH_NOT_EXISTS = "There is no database loaded";
+    /**
+     * The error message for when no database has been loaded in yet.
+     */
+    public static final String GRAPH_NOT_EXISTS = "There is no database loaded";
+
+    private static final String DIGRAPH_FORMAT_PREFIX = "digraph {";
+    private static final String DIGRAPH_FORMAT_SUFFIX = "}";
 
     private final CommandHandler commandHandler;
     private DatabaseGraph databaseGraph;
@@ -76,7 +88,8 @@ public class RecommendationSystem {
         if (databaseGraph == null) {
             return CommandResult.failure(GRAPH_NOT_EXISTS);
         }
-        return CommandResult.success(formatFromStringList(List.of("digraph {"), databaseGraph.formatDigraph(), List.of("}")));
+        return CommandResult.success(formatFromStringList(List.of(DIGRAPH_FORMAT_PREFIX),
+                databaseGraph.formatDigraph(), List.of(DIGRAPH_FORMAT_SUFFIX)));
     }
 
     /**
@@ -105,7 +118,7 @@ public class RecommendationSystem {
         if (databaseGraph == null) {
             return CommandResult.failure(GRAPH_NOT_EXISTS);
         }
-        return CommandResult.success(String.join(" ", databaseGraph.formatNodes()));
+        return CommandResult.success(String.join(INLINE_LIST_DELIMITER, databaseGraph.formatNodes()));
     }
 
     /**

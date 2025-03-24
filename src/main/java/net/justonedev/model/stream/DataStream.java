@@ -11,6 +11,8 @@ import java.util.List;
  * @author uwwfh
  */
 public class DataStream<T> {
+    private static final int MAX_TOLERANCE_SAME_SORTING_VALUE = 1000;
+
     private final List<T> stream;
 
     private DataStream() {
@@ -98,7 +100,7 @@ public class DataStream<T> {
     /**
      * Sorts the stream by a given string comparator, and then sorts by the given integer comparator.
      * Creates a new stream object with the elements sorted.
-     * Only supports up to 999 elements to have the same string comparator value.<br/>
+     * Only supports up to {@linkplain #MAX_TOLERANCE_SAME_SORTING_VALUE} - 1 elements to have the same string comparator value.<br/>
      * This specifically sorts by a string and then integer, as the usual Comparator.comparing(...).thenComparing(...)
      * uses the {@code java.util.function} package, which is not allowed.
      *
@@ -111,7 +113,7 @@ public class DataStream<T> {
         // This means this can only properly support thenComparing if <= 1000 elements have the same value for the first comparator
         // For this application (specifically, its tests), it's fine
         filteredStream.stream.sort((a, b) -> (comparator.mapToString(a)
-                .compareTo(comparator.mapToString(b)) * 1000)
+                .compareTo(comparator.mapToString(b)) * MAX_TOLERANCE_SAME_SORTING_VALUE)
                 + thenComparing.mapToInt(a)
                 - thenComparing.mapToInt(b));
         return filteredStream;

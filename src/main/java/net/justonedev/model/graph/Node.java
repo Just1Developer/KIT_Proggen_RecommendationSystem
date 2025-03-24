@@ -15,6 +15,8 @@ import java.util.Set;
  * @author uwwfh
  */
 class Node {
+    private static final String PRODUCT_NODE_LABEL_FORMAT = "%s:%d";
+
     private final int productId;
     private final String name;
     private final NodeType type;
@@ -138,7 +140,7 @@ class Node {
      * @return The with-id-formatted name of the product or category.
      */
     String getLabel() {
-        return type == NodeType.CATEGORY ? name : "%s:%d".formatted(name, productId);
+        return type == NodeType.CATEGORY ? name : PRODUCT_NODE_LABEL_FORMAT.formatted(name, productId);
     }
 
     /**

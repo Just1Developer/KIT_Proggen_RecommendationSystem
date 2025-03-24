@@ -13,12 +13,16 @@ import java.util.Optional;
  * @param target The target node (destination).
  */
 record Edge(EdgeType edgeType, Node source, Node target) {
+    private static final String FORMAT_SORT_ORDER = "%s %s";
+    private static final String ERROR_PRODUCT_ONLY_RELATION = "This relation is only available for product nodes.";
+    private static final String ERROR_CONTAINS_RELATION = "Products and categories can only be contained in categories.";
+
     /**
      * Formats the edge to a string by which we can then naturally sort to get the proper order.
      * @return The string which, when sorted by, produces the required order.
      */
     String formatToSortOrder() {
-        return "%s %s".formatted(source.getName(), target.getName());
+        return FORMAT_SORT_ORDER.formatted(source.getName(), target.getName());
     }
 
     /**
@@ -31,11 +35,11 @@ record Edge(EdgeType edgeType, Node source, Node target) {
     public Optional<String> checkValidity() {
         if ((source.getType() != NodeType.PRODUCT || target.getType() != NodeType.PRODUCT)
                 && (edgeType != EdgeType.CONTAINS && edgeType != EdgeType.CONTAINED_IN)) {
-            return Optional.of("This relation is only available for product nodes.");
+            return Optional.of(ERROR_PRODUCT_ONLY_RELATION);
         }
         if (edgeType == EdgeType.CONTAINS && source.getType() == NodeType.PRODUCT
             || edgeType == EdgeType.CONTAINED_IN && target.getType() == NodeType.PRODUCT) {
-            return Optional.of("Products and categories can only be contained in categories.");
+            return Optional.of(ERROR_CONTAINS_RELATION);
         }
         return Optional.empty();
     }

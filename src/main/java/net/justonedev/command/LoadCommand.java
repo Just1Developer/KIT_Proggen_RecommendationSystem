@@ -14,10 +14,16 @@ import java.util.StringJoiner;
  * @author uwwfh
  */
 public class LoadCommand implements Command {
+    private static final String ERROR_NOT_ENOUGH_ARGUMENTS = "Not enough arguments: Required \"load database <filepath>\"";
+    private static final String ERROR_FAILED_FILE_PARSE = "Failed to parse database from file (Path: %s)";
+
+    private static final int MINIMUM_ARGUMENT_LENGTH = 2;
+    private static final int FILEPATH_ARG_INDEX_BEGIN = 1;
+
     @Override
     public CommandResult execute(RecommendationSystem system, String[] args) {
-        if (args.length < 2) {
-            return CommandResult.failure("Not enough arguments: Required \"load database <filepath>\"");
+        if (args.length < MINIMUM_ARGUMENT_LENGTH) {
+            return CommandResult.failure(ERROR_NOT_ENOUGH_ARGUMENTS);
         }
         String filePath = getFilepath(args);
         ParseGraphResult parseGraphResult = Parser.parseGraph(filePath);
@@ -25,7 +31,7 @@ public class LoadCommand implements Command {
             system.loadGraph(parseGraphResult.graph());
             return CommandResult.success(formatLines(parseGraphResult.fileLines()));
         }
-        return CommandResult.failure("Failed to parse database from file (Path: %s)".formatted(filePath),
+        return CommandResult.failure(ERROR_FAILED_FILE_PARSE.formatted(filePath),
                 formatLines(parseGraphResult.fileLines()));
     }
 
@@ -36,8 +42,8 @@ public class LoadCommand implements Command {
     }
 
     private static String getFilepath(String[] args) {
-        StringJoiner joiner = new StringJoiner(" ");
-        for (int i = 1; i < args.length; i++) {
+        StringJoiner joiner = new StringJoiner(CommandHandler.ARGUMENT_DELIMITER);
+        for (int i = FILEPATH_ARG_INDEX_BEGIN; i < args.length; i++) {
             joiner.add(args[i]);
         }
         return joiner.toString();

@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public class RecommendCommand implements Command {
 
     /**
-     * Regex is INTERSECTION(some stuff) or UNION(some stuff) with allowance for random spaces.
+     * Regex is INTERSECTION(some string) or UNION(some string) with allowance for random spaces.
      */
     private static final Pattern SET_PATTERN = Pattern.compile("\\s*(INTERSECTION|UNION)\\s*\\(\\s*(.*)\\s*\\)");
 
@@ -27,24 +27,44 @@ public class RecommendCommand implements Command {
      */
     private static final Pattern SINGLE_SET_PATTERN = Pattern.compile("\\s*S([123])\\s+(\\d+)\\s*");
 
+    private static final String PRINT_EMPTY_LINE_TRIGGER = " ";
+    private static final String ERROR_SET_INVALID_FORMAT = "The set definition (\"%s\") did not match the expected format";
+    private static final String ERROR_SET_PARSE_ERROR = "Failed to parse numbers (impossible, because of regex validation)";
+    private static final String PRODUCT_ID_FORMAT_REGEX = ":\\d+";
+    private static final String MULTIPLE_ERRORS_FORMAT = "Multiple Errors: %s";
+    private static final String MULTIPLE_ERRORS_DELIMITER = ", ";
+    private static final char BRACKET_LEVEL_DEEPER = '(';
+    private static final char BRACKET_LEVEL_SHALLOWER = ')';
+    private static final char SET_FORMAT_DELIMITER = ',';
+
     private static final int GROUP_INDEX_STRATEGY = 1;
     private static final int GROUP_INDEX_PRODUCT_ID = 2;
     private static final int GROUP_INDEX_SET_OPERATION = 1;
     private static final int GROUP_INDEX_SET_OP_ARGS = 2;
 
+    private static final int FIRST_SUBSTRING_BEGIN = 0;
+    private static final int SECOND_SUBSTRING_STATIC_OFFSET = 1;
+
+    private static final int STARTER_BRACKET_LEVEL = 0;
+    private static final int TARGET_BRACKET_LEVEL = STARTER_BRACKET_LEVEL;
+    private static final int NO_SEPARATING_COMMA = -1;
+
+    private static final int SINGLE_ERROR_LIST_SIZE = 1;
+    private static final int SINGLE_ERROR_LIST_INDEX = 0;
+
     @Override
     public CommandResult execute(RecommendationSystem system, String[] args) {
         if (!system.hasDatabase()) {
-            return CommandResult.failure("No database has been loaded");
+            return CommandResult.failure(RecommendationSystem.GRAPH_NOT_EXISTS);
         }
-        String setPattern = String.join(" ", args);
+        String setPattern = String.join(CommandHandler.ARGUMENT_DELIMITER, args);
         ConstructSetResult constructSetResult = constructSet(system, setPattern);
         if (constructSetResult.isInvalid()) {
             return CommandResult.failure(constructSetResult.getErrors());
         }
         String recommendations = constructSetResult.getRecommendations();
         // Space such that an empty line is printed when there are no recommendations
-        return CommandResult.success(recommendations.isEmpty() ? " " : recommendations);
+        return CommandResult.success(recommendations.isEmpty() ? PRINT_EMPTY_LINE_TRIGGER : recommendations);
     }
 
     private static ConstructSetResult constructSet(RecommendationSystem system, String string) {
@@ -53,7 +73,7 @@ public class RecommendCommand implements Command {
         if (!matcher.matches()) {
             // Single or nothing
             if (!singleSetMatcher.matches()) {
-                return ConstructSetResult.failure("The set definition (\"%s\") did not match the expected format".formatted(string));
+                return ConstructSetResult.failure(ERROR_SET_INVALID_FORMAT.formatted(string));
             }
             // Group 1 is guaranteed to be 1, 2 or 3
             try {
@@ -64,15 +84,15 @@ public class RecommendCommand implements Command {
                 return result.valid() ? ConstructSetResult.success(NodeSet.single(result.recommendations()))
                         : ConstructSetResult.failure(result.error());
             } catch (NumberFormatException e) {
-                ConstructSetResult.failure("Failed to parse numbers (impossible, because of regex validation)");
+                ConstructSetResult.failure(ERROR_SET_PARSE_ERROR);
             }
         }
 
         CombinationStrategy combinationStrategy = CombinationStrategy.valueOf(matcher.group(GROUP_INDEX_SET_OPERATION));
         String match = matcher.group(GROUP_INDEX_SET_OP_ARGS);
         int separator = findSeparatingComma(match);
-        String firstSetMatch = match.substring(0, separator).trim();
-        String secondSetMatch = match.substring(separator + 1).trim();
+        String firstSetMatch = match.substring(FIRST_SUBSTRING_BEGIN, separator).trim();
+        String secondSetMatch = match.substring(separator + SECOND_SUBSTRING_STATIC_OFFSET).trim();
 
         ConstructSetResult firstSet = constructSet(system, firstSetMatch);
         ConstructSetResult secondSet = constructSet(system, secondSetMatch);
@@ -86,18 +106,18 @@ public class RecommendCommand implements Command {
     }
 
     private static int findSeparatingComma(String set) {
-        int bracketLevel = 0;
+        int bracketLevel = STARTER_BRACKET_LEVEL;
         char[] chars = set.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            if (chars[i] == '(') {
+        for (int i = FIRST_SUBSTRING_BEGIN; i < chars.length; i++) {
+            if (chars[i] == BRACKET_LEVEL_DEEPER) {
                 bracketLevel++;
-            } else if (chars[i] == ')') {
+            } else if (chars[i] == BRACKET_LEVEL_SHALLOWER) {
                 bracketLevel--;
-            } else if (bracketLevel == 0 && chars[i] == ',') {
+            } else if (bracketLevel == TARGET_BRACKET_LEVEL && chars[i] == SET_FORMAT_DELIMITER) {
                 return i;
             }
         }
-        return -1;
+        return NO_SEPARATING_COMMA;
     }
 
     private record NodeSet(List<String> nodes) {
@@ -131,8 +151,8 @@ public class RecommendCommand implements Command {
         }
 
         private String getValue() {
-            return String.join(" ", DataStream.of(nodes).distinct().sorted(node ->
-                    node.replaceAll(":\\d+", "")).toList());
+            return String.join(RecommendationSystem.INLINE_LIST_DELIMITER, DataStream.of(nodes).distinct().sorted(node ->
+                    node.replaceAll(PRODUCT_ID_FORMAT_REGEX, "")).toList());
         }
     }
 
@@ -147,7 +167,8 @@ public class RecommendCommand implements Command {
             return !errors.isEmpty();
         }
         private String getErrors() {
-            return errors.size() == 1 ? errors.get(0) : "Multiple Errors: %s".formatted(String.join(", ", errors));
+            return errors.size() == SINGLE_ERROR_LIST_SIZE ? errors.get(SINGLE_ERROR_LIST_INDEX)
+                    : MULTIPLE_ERRORS_FORMAT.formatted(String.join(MULTIPLE_ERRORS_DELIMITER, errors));
         }
         private String getRecommendations() {
             return nodeSet.getValue();
