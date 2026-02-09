@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
  * @author uwwfh
  */
 public class RecommendCommand implements Command {
-
     /**
      * Regex is INTERSECTION(some string) or UNION(some string) with allowance for random spaces.
      */
@@ -157,8 +156,19 @@ public class RecommendCommand implements Command {
     }
 
     private enum CombinationStrategy {
+        /**
+         * Single strategy, no combination.
+         */
         SINGLE,
+        /**
+         * Combines two sets by intersecting them.
+         * Result will contain only elements that are present in both sets.
+         */
         INTERSECTION,
+        /**
+         * Combines two sets by uniting them.
+         * Result will contain all unique elements from both sets.
+         */
         UNION
     }
 
@@ -166,10 +176,12 @@ public class RecommendCommand implements Command {
         private boolean isInvalid() {
             return !errors.isEmpty();
         }
+
         private String getErrors() {
             return errors.size() == SINGLE_ERROR_LIST_SIZE ? errors.get(SINGLE_ERROR_LIST_INDEX)
                     : MULTIPLE_ERRORS_FORMAT.formatted(String.join(MULTIPLE_ERRORS_DELIMITER, errors));
         }
+
         private String getRecommendations() {
             return nodeSet.getValue();
         }
@@ -177,6 +189,7 @@ public class RecommendCommand implements Command {
         private static ConstructSetResult success(NodeSet results) {
             return new ConstructSetResult(results, new ArrayList<>());
         }
+
         private static ConstructSetResult failure(String error) {
             return new ConstructSetResult(NodeSet.single(RecommendationSystem.NO_DATA), new ArrayList<>(List.of(error)));
         }
